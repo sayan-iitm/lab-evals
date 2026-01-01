@@ -90,8 +90,9 @@ def create_evaluation(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid student ID",
             )
-        question = db.query(Question).filter_by(
-            id=evaluation.question_id).first()
+        question = (
+            db.query(Question).filter_by(id=evaluation.question_id).first()
+        )
         if not question:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -99,7 +100,10 @@ def create_evaluation(
             )
         enrollment = (
             db.query(Enrollment)
-            .filter_by(student_id=evaluation.student_id, subject_id=question.subject_id)
+            .filter_by(
+                student_id=evaluation.student_id,
+                subject_id=question.subject_id,
+            )
             .first()
         )
         if not enrollment:
@@ -141,7 +145,9 @@ def list_evaluations(current_user: User = Depends(get_current_user)):
 # --- Get single evaluation (only if made by this TA) ---
 
 
-@router.get("/evaluations/{evaluation_id}", response_model=TAEvaluationResponse)
+@router.get(
+    "/evaluations/{evaluation_id}", response_model=TAEvaluationResponse
+)
 def get_evaluation(
     evaluation_id: int, current_user: User = Depends(get_current_user)
 ):
@@ -165,7 +171,9 @@ def get_evaluation(
 # --- Update evaluation (only if made by this TA) ---
 
 
-@router.put("/evaluations/{evaluation_id}", response_model=TAEvaluationResponse)
+@router.put(
+    "/evaluations/{evaluation_id}", response_model=TAEvaluationResponse
+)
 def update_evaluation(
     evaluation_id: int,
     evaluation: TAEvaluationUpdate,
