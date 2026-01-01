@@ -8,9 +8,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import require_role
 from app.constants.enums import UserRole
 from app.core.database import SessionLocal
+from app.models.enrollment import Enrollment
+from app.models.evaluation import Evaluation
 from app.models.question import Question
 from app.models.subject import Subject
 from app.models.user import User
+from app.schemas.enrollment import (
+    EnrollmentCreate,
+    EnrollmentResponse,
+)
+from app.schemas.evaluation import (
+    EvaluationResponse,
+    EvaluationUpdate,
+)
 from app.schemas.question import (
     QuestionCreate,
     QuestionResponse,
@@ -18,6 +28,8 @@ from app.schemas.question import (
 )
 from app.schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
+
+# --- User Endpoints ---
 
 router = APIRouter(dependencies=[Depends(require_role(UserRole.admin))])
 
@@ -259,6 +271,238 @@ def delete_user(user_id: int):
         if not db_obj:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        db.delete(db_obj)
+        db.commit()
+        return {}, status.HTTP_204_NO_CONTENT
+    finally:
+        db.close()
+
+
+# --- Enrollment Endpoints ---
+
+
+@router.post("/enrollments", response_model=EnrollmentResponse)
+def create_enrollment(enrollment: EnrollmentCreate):
+    db = SessionLocal()
+    try:
+        student = (
+            db.query(User)
+            .filter_by(id=enrollment.user_id, role=UserRole.student)
+            .first()
+        )
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not a student or does not exist",
+            )
+        subject = db.query(Subject).filter_by(id=enrollment.subject_id).first()
+        if not subject:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Subject does not exist",
+            )
+        db_obj = Enrollment(
+            user_id=enrollment.user_id, subject_id=enrollment.subject_id
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+    finally:
+        db.close()
+
+
+@router.get("/enrollments/{enrollment_id}", response_model=EnrollmentResponse)
+def get_enrollment(enrollment_id: int):
+    db = SessionLocal()
+    try:
+        db_obj = db.query(Enrollment).filter_by(id=enrollment_id).first()
+        if not db_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Enrollment not found",
+            )
+        return db_obj
+    finally:
+        db.close()
+
+
+@router.get("/enrollments", response_model=list[EnrollmentResponse])
+def list_enrollments():
+    db = SessionLocal()
+    try:
+        return db.query(Enrollment).all()
+    finally:
+        db.close()
+
+
+@router.delete("/enrollments/{enrollment_id}")
+def delete_enrollment(enrollment_id: int):
+    db = SessionLocal()
+    try:
+        db_obj = db.query(Enrollment).filter_by(id=enrollment_id).first()
+        if not db_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Enrollment not found",
+            )
+        db.delete(db_obj)
+        db.commit()
+        return {}, status.HTTP_204_NO_CONTENT
+    finally:
+        db.close()
+
+
+# == Evaluations
+
+
+@router.get("/evaluations", response_model=list[EvaluationResponse])
+def list_evaluations():
+    db = SessionLocal()
+    try:
+        return db.query(Evaluation).all()
+    finally:
+        db.close()
+
+
+@router.post("/evaluations/", response_model=EvaluationResponse)
+def create_evaluation(
+    evaluation: EvaluationUpdate,
+):
+    db = SessionLocal()
+    try:
+        student = (
+            db.query(User)
+            .filter_by(id=evaluation.student_id, role=UserRole.student)
+            .first()
+        )
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not a student or does not exist",
+            )
+        ta = (
+            db.query(User)
+            .filter_by(id=evaluation.ta_id, role=UserRole.ta)
+            .first()
+        )
+        if not ta:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not a TA or does not exist",
+            )
+        question = (
+            db.query(Question).filter_by(id=evaluation.question_id).first()
+        )
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Question does not exist",
+            )
+        enrollment = (
+            db.query(Enrollment)
+            .filter_by(
+                user_id=evaluation.student_id, subject_id=question.subject_id
+            )
+            .first()
+        )
+        if not enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Student is not enrolled in the subject",
+            )
+        db_obj = Evaluation(
+            student_id=evaluation.student_id,
+            question_id=evaluation.question_id,
+            ta_id=evaluation.ta_id,
+            marking=evaluation.marking,
+            remarks=evaluation.remarks,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+    finally:
+        db.close()
+
+
+@router.put("/evaluations/{evaluation_id}", response_model=EvaluationResponse)
+def update_evaluation(
+    evaluation_id: int,
+    evaluation: EvaluationUpdate,
+):
+    db = SessionLocal()
+    try:
+        db_obj = db.query(Evaluation).filter_by(id=evaluation_id).first()
+        if not db_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evaluation not found",
+            )
+        student = (
+            db.query(User)
+            .filter_by(id=evaluation.student_id, role=UserRole.student)
+            .first()
+        )
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not a student or does not exist",
+            )
+        ta = (
+            db.query(User)
+            .filter_by(id=evaluation.ta_id, role=UserRole.ta)
+            .first()
+        )
+        if not ta:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not a TA or does not exist",
+            )
+        question = (
+            db.query(Question).filter_by(id=evaluation.question_id).first()
+        )
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Question does not exist",
+            )
+        enrollment = (
+            db.query(Enrollment)
+            .filter_by(
+                student_id=evaluation.student_id,
+                subject_id=question.subject_id,
+            )
+            .first()
+        )
+        if not enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Student is not enrolled in the subject",
+            )
+        db_obj.student_id = evaluation.student_id
+        db_obj.question_id = evaluation.question_id
+        db_obj.ta_id = evaluation.ta_id
+        db_obj.marking = evaluation.marking
+        if evaluation.remarks is not None:
+            db_obj.remarks = evaluation.remarks
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+    finally:
+        db.close()
+
+
+@router.delete("/evaluations/{evaluation_id}")
+def delete_evaluation(evaluation_id: int):
+    db = SessionLocal()
+    try:
+        db_obj = db.query(Evaluation).filter_by(id=evaluation_id).first()
+        if not db_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evaluation not found",
             )
         db.delete(db_obj)
         db.commit()

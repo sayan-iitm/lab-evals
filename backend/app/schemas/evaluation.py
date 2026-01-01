@@ -26,17 +26,6 @@ class EvaluationUpdate(EvaluationBase):
     pass
 
 
-class EvaluationPartialUpdate(BaseModel):
-    student_id: int | None = None
-    question_id: int | None = None
-    ta_id: int | None = None
-    marking: Marking | None = None
-    remarks: str | None = None
-
-    class Config:
-        extra = "forbid"
-
-
 class EvaluationResponse(EvaluationBase):
     id: int
 
@@ -50,3 +39,27 @@ class StudentEvaluationResponse(BaseModel):
     student_id: int
     question_id: int
     ta_id: int
+
+
+class TAEvaluationBase(BaseModel):
+    student_id: int
+    question_id: int
+    marking: Marking
+    remarks: str | None = None
+
+
+class TAEvaluationCreate(TAEvaluationBase):
+    pass
+
+
+class TAEvaluationUpdate(TAEvaluationCreate):
+    pass
+
+
+class TAEvaluationResponse(TAEvaluationBase):
+    id: int
+    ta_id: int
+
+    class Config:
+        from_attributes = True
+        extra = "forbid"
