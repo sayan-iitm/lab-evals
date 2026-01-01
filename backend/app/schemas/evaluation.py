@@ -9,7 +9,7 @@ from app.constants.enums import Marking
 
 class EvaluationBase(BaseModel):
     student_id: int
-    subject_id: int
+    question_id: int
     ta_id: int
     marking: Marking
     remarks: str | None = None
@@ -28,7 +28,7 @@ class EvaluationUpdate(EvaluationBase):
 
 class EvaluationPartialUpdate(BaseModel):
     student_id: int | None = None
-    subject_id: int | None = None
+    question_id: int | None = None
     ta_id: int | None = None
     marking: Marking | None = None
     remarks: str | None = None
@@ -43,3 +43,10 @@ class EvaluationResponse(EvaluationBase):
     class Config:
         from_attributes = True
         extra = "forbid"
+
+
+class StudentEvaluationResponse(BaseModel):
+    id: int
+    student_id: int
+    question_id: int
+    ta_id: int

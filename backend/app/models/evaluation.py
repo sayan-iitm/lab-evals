@@ -19,14 +19,15 @@ class Evaluation(Base):
     student_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
-    subject_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("subjects.id"), nullable=False
+    question_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("questions.id"), nullable=False
     )
     ta_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
     marking: Mapped[Marking] = mapped_column(Enum(Marking), nullable=False)
     remarks: Mapped[str] = mapped_column(Text, nullable=True)
+
     student = relationship("User", foreign_keys=[student_id])
     ta = relationship("User", foreign_keys=[ta_id])
-    subject = relationship("Subject")
+    question = relationship("Question")
