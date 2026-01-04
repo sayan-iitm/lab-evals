@@ -425,6 +425,20 @@ def create_evaluation(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Student is not enrolled in the subject",
             )
+        exists = (
+            db.query(Evaluation)
+            .filter_by(
+                student_id=evaluation.student_id,
+                question_id=evaluation.question_id,
+                ta_id=evaluation.ta_id,
+            )
+            .first()
+        )
+        if exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Evaluation already exists for this data",
+            )
         db_obj = Evaluation(
             student_id=evaluation.student_id,
             question_id=evaluation.question_id,

@@ -17,6 +17,9 @@
           </AppSelect>
         </div>
         <AppButton @click="showCreate = true">Add User</AppButton>
+        <AppButton @click="showBulkUpload = true" class="bg-blue-600 hover:bg-blue-500"
+          >Bulk Upload CSV</AppButton
+        >
       </div>
     </div>
     <AppTable>
@@ -74,18 +77,159 @@
         </div>
       </div>
     </div>
+
+    <!-- Bulk Upload Modal -->
+    <div
+      v-if="showBulkUpload"
+      class="fixed inset-0 bg-black/30 flex items-center justify-center z-10"
+    >
+      <div class="bg-white p-6 rounded shadow w-[700px] max-h-[80vh] overflow-auto">
+        <h3 class="font-semibold mb-4">Bulk Upload Users</h3>
+
+        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+          <p class="font-semibold mb-1">CSV Format:</p>
+          <p>Your CSV file should have the following columns:</p>
+          <ul class="list-disc list-inside mt-1">
+            <li><strong>name</strong> (required): User's full name</li>
+            <li><strong>email</strong> (required): User's email address (must be unique)</li>
+            <li>
+              <strong>role</strong> (required): Must be one of: <code>student</code>,
+              <code>ta</code>, or <code>admin</code>
+            </li>
+          </ul>
+          <p class="mt-2">Example:</p>
+          <code class="block mt-1 p-2 bg-white rounded">
+            name,email,role<br />
+            John Doe,john@example.com,student<br />
+            Jane Smith,jane@example.com,ta<br />
+            Admin User,admin@example.com,admin
+          </code>
+        </div>
+
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".csv"
+          @change="handleFileSelect"
+          class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+
+        <!-- Validation Errors -->
+        <div
+          v-if="validationErrors.length > 0"
+          class="mb-4 p-3 bg-red-50 border border-red-200 rounded"
+        >
+          <p class="font-semibold text-red-800 mb-2">Validation Errors:</p>
+          <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto">
+            <li v-for="(error, idx) in validationErrors" :key="idx">{{ error }}</li>
+          </ul>
+        </div>
+
+        <!-- Preview Table -->
+        <div v-if="csvData.length > 0 && validationErrors.length === 0" class="mb-4">
+          <p class="font-semibold mb-2">Preview ({{ csvData.length }} users):</p>
+          <div class="border rounded max-h-60 overflow-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="px-3 py-2 text-left">Name</th>
+                  <th class="px-3 py-2 text-left">Email</th>
+                  <th class="px-3 py-2 text-left">Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, idx) in csvData" :key="idx" class="border-t">
+                  <td class="px-3 py-2">{{ row.name }}</td>
+                  <td class="px-3 py-2">{{ row.email }}</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-2 py-1 rounded text-xs font-medium"
+                      :class="{
+                        'bg-blue-100 text-blue-800': row.role === 'student',
+                        'bg-green-100 text-green-800': row.role === 'ta',
+                        'bg-purple-100 text-purple-800': row.role === 'admin',
+                      }"
+                    >
+                      {{ row.role }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div v-if="isUploading" class="mb-4">
+          <div class="flex justify-between text-sm mb-1">
+            <span>Uploading...</span>
+            <span>{{ uploadProgress.current }} / {{ uploadProgress.total }}</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+            <div
+              class="bg-blue-600 h-full transition-all duration-300"
+              :style="{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Upload Results -->
+        <div
+          v-if="uploadResults.success.length > 0 || uploadResults.errors.length > 0"
+          class="mb-4"
+        >
+          <div
+            v-if="uploadResults.success.length > 0"
+            class="mb-2 p-3 bg-green-50 border border-green-200 rounded"
+          >
+            <p class="text-green-800 font-semibold">
+              ✓ Successfully uploaded {{ uploadResults.success.length }} users
+            </p>
+          </div>
+          <div
+            v-if="uploadResults.errors.length > 0"
+            class="p-3 bg-red-50 border border-red-200 rounded"
+          >
+            <p class="font-semibold text-red-800 mb-2">Failed uploads:</p>
+            <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto">
+              <li v-for="(error, idx) in uploadResults.errors" :key="idx">{{ error }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <AppButton
+            v-if="
+              csvData.length > 0 &&
+              validationErrors.length === 0 &&
+              !isUploading &&
+              uploadResults.success.length === 0 &&
+              uploadResults.errors.length === 0
+            "
+            @click="startUpload"
+            :disabled="isUploading"
+          >
+            Upload {{ csvData.length }} Users
+          </AppButton>
+          <AppButton @click="closeBulkUpload" :disabled="isUploading">
+            {{ isUploading ? 'Uploading...' : 'Close' }}
+          </AppButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 // Admin Users CRUD view
 import { ref, onMounted, computed } from 'vue'
+import Papa from 'papaparse'
 import AppButton from '../../components/common/AppButton.vue'
 import AppInput from '../../components/common/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
 import AppTable from '../../components/common/AppTable.vue'
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/admin'
-import type { UserResponse, UserRole } from '../../types/api'
+import type { UserResponse, UserRole, UserCreate } from '../../types/api'
 
 const users = ref<UserResponse[]>([])
 const roleFilter = ref<string>('')
@@ -103,6 +247,15 @@ const filteredUsers = computed(() => {
   }
   return users.value.filter((user) => user.role === roleFilter.value)
 })
+
+// Bulk upload state
+const showBulkUpload = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const csvData = ref<UserCreate[]>([])
+const validationErrors = ref<string[]>([])
+const isUploading = ref(false)
+const uploadProgress = ref({ current: 0, total: 0 })
+const uploadResults = ref<{ success: string[]; errors: string[] }>({ success: [], errors: [] })
 
 async function load() {
   users.value = await getUsers()
@@ -146,5 +299,151 @@ function cancelEdit() {
 async function deleteUserHandler(id: number) {
   await deleteUser(id)
   await load()
+}
+
+// Bulk upload functions
+function handleFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  // Reset state
+  csvData.value = []
+  validationErrors.value = []
+  uploadResults.value = { success: [], errors: [] }
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      validateAndLoadCSV(results.data as Record<string, string>[])
+    },
+    error: (error) => {
+      validationErrors.value = [`CSV parsing error: ${error.message}`]
+    },
+  })
+}
+
+function validateAndLoadCSV(data: Record<string, string>[]) {
+  const errors: string[] = []
+  const validData: UserCreate[] = []
+  const validRoles: UserRole[] = ['student', 'ta', 'admin']
+  const csvEmails = new Set<string>()
+  const existingEmails = new Set(users.value.map((u) => u.email.toLowerCase()))
+
+  if (data.length === 0) {
+    errors.push('CSV file is empty')
+    validationErrors.value = errors
+    return
+  }
+
+  data.forEach((row, index) => {
+    const rowNum = index + 2 // +2 because of header row and 0-based index
+
+    // Validate name
+    if (!row.name || !row.name.trim()) {
+      errors.push(`Row ${rowNum}: 'name' is required`)
+      return
+    }
+
+    if (row.name.trim().length < 2) {
+      errors.push(`Row ${rowNum}: 'name' must be at least 2 characters`)
+      return
+    }
+
+    // Validate email
+    if (!row.email || !row.email.trim()) {
+      errors.push(`Row ${rowNum}: 'email' is required`)
+      return
+    }
+
+    const email = row.email.trim().toLowerCase()
+
+    // Basic email format validation
+    if (!email.includes('@') || !email.includes('.')) {
+      errors.push(`Row ${rowNum}: 'email' must be a valid email address`)
+      return
+    }
+
+    // Check if email already exists in database
+    if (existingEmails.has(email)) {
+      errors.push(`Row ${rowNum}: email '${row.email.trim()}' already exists in the system`)
+      return
+    }
+
+    // Check for duplicate emails within the CSV
+    if (csvEmails.has(email)) {
+      errors.push(`Row ${rowNum}: duplicate email '${row.email.trim()}' found in CSV`)
+      return
+    }
+    csvEmails.add(email)
+
+    // Validate role
+    if (!row.role || !row.role.trim()) {
+      errors.push(`Row ${rowNum}: 'role' is required`)
+      return
+    }
+
+    const role = row.role.trim().toLowerCase() as UserRole
+    if (!validRoles.includes(role)) {
+      errors.push(
+        `Row ${rowNum}: 'role' must be one of: student, ta, admin (got '${row.role.trim()}')`,
+      )
+      return
+    }
+
+    validData.push({
+      name: row.name.trim(),
+      email: row.email.trim(),
+      role: role,
+    })
+  })
+
+  if (errors.length > 0) {
+    validationErrors.value = errors
+  } else {
+    csvData.value = validData
+  }
+}
+
+async function startUpload() {
+  if (csvData.value.length === 0) return
+
+  isUploading.value = true
+  uploadProgress.value = { current: 0, total: csvData.value.length }
+  uploadResults.value = { success: [], errors: [] }
+
+  for (let i = 0; i < csvData.value.length; i++) {
+    const user = csvData.value[i]
+    try {
+      await createUser(user)
+      uploadResults.value.success.push(`"${user.name}" (${user.email}) uploaded successfully`)
+      uploadProgress.value.current++
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error'
+      uploadResults.value.errors.push(`"${user.name}" (${user.email}): ${errorMessage}`)
+      uploadProgress.value.current++
+    }
+  }
+
+  isUploading.value = false
+
+  // Reload the users list
+  await load()
+}
+
+function closeBulkUpload() {
+  showBulkUpload.value = false
+  csvData.value = []
+  validationErrors.value = []
+  uploadResults.value = { success: [], errors: [] }
+  uploadProgress.value = { current: 0, total: 0 }
+  isUploading.value = false
+
+  // Reset file input
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 </script>

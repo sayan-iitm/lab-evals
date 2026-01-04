@@ -4,23 +4,33 @@
 -->
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex justify-between items-center mb-4 gap-4">
       <h2 class="text-xl font-semibold">Evaluations</h2>
-      <AppButton @click="showCreate = true">Add Evaluation</AppButton>
+      <div class="flex gap-2 items-center shrink-0">
+        <AppSelect v-model="filterSubjectId" class="w-48">
+          <option value="">All Subjects</option>
+          <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+            {{ subject.name }}
+          </option>
+        </AppSelect>
+        <AppButton class="whitespace-nowrap" @click="showCreate = true">Add Evaluation</AppButton>
+      </div>
     </div>
     <AppTable>
       <template #head>
         <th>ID</th>
         <th>Student</th>
+        <th>Subject</th>
         <th>Question</th>
         <th>TA</th>
         <th>Marking</th>
         <th>Remarks</th>
         <th>Actions</th>
       </template>
-      <tr v-for="evaluation in evaluations" :key="evaluation.id">
+      <tr v-for="evaluation in filteredEvaluations" :key="evaluation.id">
         <td>{{ evaluation.id }}</td>
         <td>{{ getUserName(evaluation.student_id) }}</td>
+        <td>{{ getQuestionSubject(evaluation.question_id) }}</td>
         <td>{{ getQuestionText(evaluation.question_id) }}</td>
         <td>{{ getUserName(evaluation.ta_id) }}</td>
         <td v-if="editId !== evaluation.id">{{ evaluation.marking }}</td>
@@ -57,18 +67,42 @@
     <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
       <div class="bg-white p-6 rounded shadow w-[28rem]">
         <h3 class="font-semibold mb-2">Add Evaluation</h3>
-        <AppSelect v-model="newStudentId">
-          <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+        <label class="block text-sm font-medium mb-1">Student</label>
+        <AppSelect v-model="newStudentId" @change="onStudentChange">
+          <option :value="null">-- Select Student --</option>
+          <option v-for="user in students" :key="user.id" :value="user.id">
+            {{ user.name }} ({{ user.email }})
+          </option>
         </AppSelect>
-        <AppSelect v-model="newQuestionId" class="mt-2">
-          <option v-for="question in questions" :key="question.id" :value="question.id">
+        <label class="block text-sm font-medium mb-1 mt-2">Subject</label>
+        <AppSelect v-model="newSubjectId" :disabled="!newStudentId" @change="onSubjectChange">
+          <option :value="null">-- Select Subject --</option>
+          <option
+            v-for="subject in filteredSubjectsForStudent"
+            :key="subject.id"
+            :value="subject.id"
+          >
+            {{ subject.name }}
+          </option>
+        </AppSelect>
+        <label class="block text-sm font-medium mb-1 mt-2">Question</label>
+        <AppSelect v-model="newQuestionId" :disabled="!newSubjectId">
+          <option
+            v-for="question in filteredQuestionsForSubject"
+            :key="question.id"
+            :value="question.id"
+          >
             {{ question.text }}
           </option>
         </AppSelect>
-        <AppSelect v-model="newTaId" class="mt-2">
-          <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+        <label class="block text-sm font-medium mb-1 mt-2">TA</label>
+        <AppSelect v-model="newTaId">
+          <option v-for="user in tas" :key="user.id" :value="user.id">
+            {{ user.name }} ({{ user.email }})
+          </option>
         </AppSelect>
-        <AppSelect v-model="newMarking" class="mt-2">
+        <label class="block text-sm font-medium mb-1 mt-2">Marking</label>
+        <AppSelect v-model="newMarking">
           <option value="done">done</option>
           <option value="partial">partial</option>
           <option value="not_done">not_done</option>
@@ -85,7 +119,7 @@
 
 <script setup lang="ts">
 // Admin Evaluations CRUD view
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import AppButton from '../../components/common/AppButton.vue'
 import AppInput from '../../components/common/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
@@ -97,14 +131,26 @@ import {
   deleteEvaluation,
   getUsers,
   getQuestions,
+  getSubjects,
+  getEnrollments,
 } from '../../api/admin'
-import type { EvaluationResponse, UserResponse, QuestionResponse, Marking } from '../../types/api'
+import type {
+  EvaluationResponse,
+  UserResponse,
+  QuestionResponse,
+  Marking,
+  SubjectResponse,
+  EnrollmentResponse,
+} from '../../types/api'
 
 const evaluations = ref<EvaluationResponse[]>([])
 const users = ref<UserResponse[]>([])
 const questions = ref<QuestionResponse[]>([])
+const subjects = ref<SubjectResponse[]>([])
+const enrollments = ref<EnrollmentResponse[]>([])
 const showCreate = ref(false)
 const newStudentId = ref<number | null>(null)
+const newSubjectId = ref<number | null>(null)
 const newQuestionId = ref<number | null>(null)
 const newTaId = ref<number | null>(null)
 const newMarking = ref<Marking>('done')
@@ -112,13 +158,17 @@ const newRemarks = ref('')
 const editId = ref<number | null>(null)
 const editMarking = ref<Marking>('done')
 const editRemarks = ref('')
+const filterSubjectId = ref<number | string>('')
 
 async function load() {
-  ;[evaluations.value, users.value, questions.value] = await Promise.all([
-    getEvaluations(),
-    getUsers(),
-    getQuestions(),
-  ])
+  ;[evaluations.value, users.value, questions.value, subjects.value, enrollments.value] =
+    await Promise.all([
+      getEvaluations(),
+      getUsers(),
+      getQuestions(),
+      getSubjects(),
+      getEnrollments(),
+    ])
 }
 onMounted(load)
 
@@ -127,6 +177,56 @@ function getUserName(id: number) {
 }
 function getQuestionText(id: number) {
   return questions.value.find((q) => q.id === id)?.text || ''
+}
+
+function getQuestionSubject(questionId: number) {
+  const question = questions.value.find((q) => q.id === questionId)
+  if (!question) return ''
+  return subjects.value.find((s) => s.id === question.subject_id)?.name || ''
+}
+
+const filteredEvaluations = computed(() => {
+  if (filterSubjectId.value === '' || filterSubjectId.value === null) {
+    return evaluations.value
+  }
+  return evaluations.value.filter((evaluation) => {
+    const question = questions.value.find((q) => q.id === evaluation.question_id)
+    return question?.subject_id === Number(filterSubjectId.value)
+  })
+})
+
+const students = computed(() => {
+  return users.value.filter((u) => u.role === 'student')
+})
+
+const tas = computed(() => {
+  return users.value.filter((u) => u.role === 'ta')
+})
+
+const filteredSubjectsForStudent = computed(() => {
+  if (!newStudentId.value) return []
+
+  const studentSubjectIds = enrollments.value
+    .filter((e) => e.user_id === newStudentId.value)
+    .map((e) => e.subject_id)
+
+  return subjects.value.filter((s) => studentSubjectIds.includes(s.id))
+})
+
+const filteredQuestionsForSubject = computed(() => {
+  if (!newSubjectId.value) return []
+  return questions.value.filter((q) => q.subject_id === newSubjectId.value)
+})
+
+function onStudentChange() {
+  // Reset subject and question when student changes
+  newSubjectId.value = null
+  newQuestionId.value = null
+}
+
+function onSubjectChange() {
+  // Reset question when subject changes
+  newQuestionId.value = null
 }
 
 async function createEvaluationHandler() {
@@ -139,6 +239,7 @@ async function createEvaluationHandler() {
     remarks: newRemarks.value || null,
   })
   newStudentId.value = null
+  newSubjectId.value = null
   newQuestionId.value = null
   newTaId.value = null
   newMarking.value = 'done'
