@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "axios": "^1.13.2",
-    "firebase": "^12.7.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
@@ -37,6 +36,7 @@
     "npm-run-all2": "^8.0.4",
     "postcss": "^8.5.6",
     "prettier": "3.7.4",
+    "sass-embedded": "^1.97.1",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "vite": "^7.3.0",
