@@ -280,6 +280,9 @@ function cancelEdit() {
 }
 
 async function deleteQuestionHandler(id: number) {
+  if (!confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+    return
+  }
   await deleteQuestion(id)
   await load()
 }

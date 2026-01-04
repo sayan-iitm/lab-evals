@@ -277,6 +277,9 @@ function cancelEdit() {
 }
 
 async function deleteEvaluationHandler(id: number) {
+  if (!confirm('Are you sure you want to delete this evaluation? This action cannot be undone.')) {
+    return
+  }
   await deleteEvaluation(id)
   await load()
 }

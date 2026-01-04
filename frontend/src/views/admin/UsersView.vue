@@ -297,6 +297,11 @@ function cancelEdit() {
 }
 
 async function deleteUserHandler(id: number) {
+  const user = users.value.find((u) => u.id === id)
+  const userName = user ? user.name : 'this user'
+  if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+    return
+  }
   await deleteUser(id)
   await load()
 }

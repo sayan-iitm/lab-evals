@@ -302,6 +302,25 @@ async function createEnrollmentHandler() {
 }
 
 async function deleteEnrollmentHandler(id: number) {
+  const enrollment = enrollments.value.find((e) => e.id === id)
+  if (enrollment) {
+    const user = getUser(enrollment.user_id)
+    const subjectName = getSubjectName(enrollment.subject_id)
+    const userName = user?.name || 'this student'
+    if (
+      !confirm(
+        `Are you sure you want to remove ${userName} from ${subjectName}? This action cannot be undone.`,
+      )
+    ) {
+      return
+    }
+  } else {
+    if (
+      !confirm('Are you sure you want to delete this enrollment? This action cannot be undone.')
+    ) {
+      return
+    }
+  }
   await deleteEnrollment(id)
   await load()
 }

@@ -241,6 +241,11 @@ function cancelEdit() {
 }
 
 async function deleteSubjectHandler(id: number) {
+  const subject = subjects.value.find((s) => s.id === id)
+  const subjectName = subject ? subject.name : 'this subject'
+  if (!confirm(`Are you sure you want to delete ${subjectName}? This action cannot be undone.`)) {
+    return
+  }
   await deleteSubject(id)
   await load()
 }
