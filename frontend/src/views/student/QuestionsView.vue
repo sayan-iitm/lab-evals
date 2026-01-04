@@ -4,18 +4,25 @@
 -->
 <template>
   <div>
-    <h2 class="text-xl font-semibold mb-4">My Questions & Evaluations</h2>
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-zinc-900">My Questions & Evaluations</h2>
+      <p class="text-sm text-zinc-600 mt-1">View your assigned questions and evaluation status</p>
+    </div>
+
     <!-- Subject Filter -->
-    <div class="mb-4">
-      <label class="block text-sm font-medium mb-2">Filter by Subject:</label>
-      <AppSelect v-model="selectedSubjectId" class="max-w-xs">
+    <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-zinc-200">
+      <AppSelect v-model="selectedSubjectId" label="Filter by Subject" class="max-w-xs">
         <option value="">All Subjects</option>
         <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
           {{ subject.name }}
         </option>
       </AppSelect>
     </div>
-    <AppTable>
+
+    <AppTable
+      :isEmpty="filteredQuestions.length === 0"
+      emptyMessage="No questions available for you yet."
+    >
       <template #head>
         <th>ID</th>
         <th>Subject</th>
@@ -23,18 +30,15 @@
         <th>Status</th>
       </template>
       <tr v-for="question in filteredQuestions" :key="question.id">
-        <td>{{ question.id }}</td>
-        <td>{{ getSubjectName(question.subject_id) }}</td>
-        <td>{{ question.text }}</td>
+        <td class="font-mono text-xs text-zinc-500">{{ question.id }}</td>
         <td>
-          <span
-            :class="{
-              'text-green-600': getEvaluationStatus(question.id) === 'Evaluated',
-              'text-gray-500': getEvaluationStatus(question.id) === 'Not Evaluated',
-            }"
-          >
+          <AppBadge variant="info">{{ getSubjectName(question.subject_id) }}</AppBadge>
+        </td>
+        <td class="max-w-md">{{ question.text }}</td>
+        <td>
+          <AppBadge :variant="getEvaluation(question.id) ? 'success' : 'default'">
             {{ getEvaluationStatus(question.id) }}
-          </span>
+          </AppBadge>
         </td>
       </tr>
     </AppTable>
@@ -46,13 +50,14 @@
 import { ref, onMounted, computed } from 'vue'
 import AppTable from '../../components/common/AppTable.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
+import AppBadge from '../../components/common/AppBadge.vue'
 import { getQuestions, getSubjects, getEvaluations } from '../../api/student'
 import type { QuestionResponse, SubjectResponse, TAEvaluationResponse } from '../../types/api'
 
 const questions = ref<QuestionResponse[]>([])
 const subjects = ref<SubjectResponse[]>([])
 const evaluations = ref<TAEvaluationResponse[]>([])
-const selectedSubjectId = ref<number | null>(null)
+const selectedSubjectId = ref<number | string>('')
 
 async function load() {
   ;[questions.value, subjects.value, evaluations.value] = await Promise.all([
@@ -64,10 +69,10 @@ async function load() {
 onMounted(load)
 
 const filteredQuestions = computed(() => {
-  if (selectedSubjectId.value === null) {
+  if (!selectedSubjectId.value) {
     return questions.value
   }
-  return questions.value.filter((q) => q.subject_id === selectedSubjectId.value)
+  return questions.value.filter((q) => q.subject_id === Number(selectedSubjectId.value))
 })
 
 function getSubjectName(id: number) {

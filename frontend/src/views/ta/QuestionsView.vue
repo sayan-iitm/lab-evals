@@ -15,7 +15,10 @@
         </AppSelect>
       </div>
     </div>
-    <AppTable>
+    <AppTable
+      :isEmpty="filteredQuestions.length === 0"
+      emptyMessage="No questions found. Adjust your filters to see available questions."
+    >
       <template #head>
         <th>ID</th>
         <th>Subject</th>

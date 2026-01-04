@@ -4,26 +4,29 @@
 -->
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Questions</h2>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-zinc-900">Questions</h2>
+        <p class="text-sm text-zinc-600 mt-1">Manage questions and bulk upload via CSV</p>
+      </div>
       <div class="flex gap-2">
         <AppButton @click="showCreate = true">Add Question</AppButton>
-        <AppButton @click="showBulkUpload = true" class="bg-blue-600 hover:bg-blue-500"
-          >Bulk Upload CSV</AppButton
-        >
+        <AppButton @click="showBulkUpload = true" variant="secondary">Bulk Upload CSV</AppButton>
       </div>
     </div>
     <!-- Subject Filter -->
     <div class="mb-4">
-      <label class="block text-sm font-medium mb-2">Filter by Subject:</label>
-      <AppSelect v-model="selectedSubjectId" class="max-w-xs">
+      <AppSelect v-model="selectedSubjectId" label="Filter by Subject" class="max-w-xs">
         <option value="">All Subjects</option>
         <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
           {{ subject.name }}
         </option>
       </AppSelect>
     </div>
-    <AppTable>
+    <AppTable
+      :isEmpty="filteredQuestions.length === 0"
+      emptyMessage="No questions found. Add your first question or adjust your filters."
+    >
       <template #head>
         <th>ID</th>
         <th>Subject</th>
@@ -39,12 +42,24 @@
         </td>
         <td>
           <div class="flex gap-2">
-            <AppButton v-if="editId !== question.id" @click="startEdit(question)">Edit</AppButton>
-            <AppButton v-if="editId === question.id" @click="saveEdit(question.id)">Save</AppButton>
-            <AppButton v-if="editId === question.id" @click="cancelEdit">Cancel</AppButton>
             <AppButton
-              class="bg-red-600 hover:bg-red-500"
-              @click="deleteQuestionHandler(question.id)"
+              v-if="editId !== question.id"
+              @click="startEdit(question)"
+              variant="secondary"
+              size="sm"
+              >Edit</AppButton
+            >
+            <AppButton
+              v-if="editId === question.id"
+              @click="saveEdit(question.id)"
+              variant="success"
+              size="sm"
+              >Save</AppButton
+            >
+            <AppButton v-if="editId === question.id" @click="cancelEdit" variant="ghost" size="sm"
+              >Cancel</AppButton
+            >
+            <AppButton variant="danger" size="sm" @click="deleteQuestionHandler(question.id)"
               >Delete</AppButton
             >
           </div>
@@ -52,18 +67,38 @@
       </tr>
     </AppTable>
     <!-- Create Modal -->
-    <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div class="bg-white p-6 rounded shadow w-96">
-        <h3 class="font-semibold mb-2">Add Question</h3>
-        <AppSelect v-model="newSubjectId">
+    <div
+      v-if="showCreate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Add Question</h3>
+          <button
+            @click="showCreate = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <AppSelect v-model="newSubjectId" label="Subject" required class="mb-3">
           <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
             {{ subject.name }}
           </option>
         </AppSelect>
-        <AppInput v-model="newText" placeholder="Question text" class="mt-2" />
-        <div class="flex gap-2 mt-4">
-          <AppButton @click="createQuestionHandler">Create</AppButton>
-          <AppButton @click="showCreate = false">Cancel</AppButton>
+        <AppInput v-model="newText" placeholder="Question text" label="Question Text" required />
+        <div class="flex gap-2 mt-6 justify-end">
+          <AppButton @click="showCreate = false" variant="ghost">Cancel</AppButton>
+          <AppButton @click="createQuestionHandler">Create Question</AppButton>
         </div>
       </div>
     </div>
@@ -71,10 +106,27 @@
     <!-- Bulk Upload Modal -->
     <div
       v-if="showBulkUpload"
-      class="fixed inset-0 bg-black/30 flex items-center justify-center z-10"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
-      <div class="bg-white p-6 rounded shadow w-[700px] max-h-[80vh] overflow-auto">
-        <h3 class="font-semibold mb-4">Bulk Upload Questions</h3>
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] overflow-auto animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Bulk Upload Questions</h3>
+          <button
+            @click="showBulkUpload = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
           <p class="font-semibold mb-1">CSV Format:</p>
@@ -175,7 +227,10 @@
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 justify-end">
+          <AppButton @click="closeBulkUpload" :disabled="isUploading" variant="ghost">
+            {{ isUploading ? 'Uploading...' : 'Close' }}
+          </AppButton>
           <AppButton
             v-if="
               csvData.length > 0 &&
@@ -188,9 +243,6 @@
             :disabled="isUploading"
           >
             Upload {{ csvData.length }} Questions
-          </AppButton>
-          <AppButton @click="closeBulkUpload" :disabled="isUploading">
-            {{ isUploading ? 'Uploading...' : 'Close' }}
           </AppButton>
         </div>
       </div>

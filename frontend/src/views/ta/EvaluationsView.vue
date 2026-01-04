@@ -4,19 +4,26 @@
 -->
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4 gap-4">
-      <h2 class="text-xl font-semibold">Evaluations</h2>
-      <div class="flex gap-2 items-center shrink-0">
-        <AppSelect v-model="filterSubjectId" class="w-48">
-          <option value="">All Subjects</option>
-          <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
-            {{ subject.name }}
-          </option>
-        </AppSelect>
-        <AppButton class="whitespace-nowrap" @click="showCreate = true">Add Evaluation</AppButton>
+    <div class="flex justify-between items-center mb-6 gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-zinc-900">Evaluations</h2>
+        <p class="text-sm text-zinc-600 mt-1">Manage your student evaluations</p>
       </div>
+      <AppButton @click="showCreate = true">Add Evaluation</AppButton>
     </div>
-    <AppTable>
+    <!-- Subject Filter -->
+    <div class="mb-4">
+      <AppSelect v-model="filterSubjectId" label="Filter by Subject" class="max-w-xs">
+        <option value="">All Subjects</option>
+        <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+          {{ subject.name }}
+        </option>
+      </AppSelect>
+    </div>
+    <AppTable
+      :isEmpty="filteredEvaluations.length === 0"
+      emptyMessage="No evaluations assigned to you yet. Check back later or adjust your filters."
+    >
       <template #head>
         <th>ID</th>
         <th>Student Name</th>
@@ -47,16 +54,24 @@
         </td>
         <td>
           <div class="flex gap-2">
-            <AppButton v-if="editId !== evaluation.id" @click="startEdit(evaluation)"
+            <AppButton
+              v-if="editId !== evaluation.id"
+              @click="startEdit(evaluation)"
+              variant="secondary"
+              size="sm"
               >Edit</AppButton
             >
-            <AppButton v-if="editId === evaluation.id" @click="saveEdit(evaluation.id)"
+            <AppButton
+              v-if="editId === evaluation.id"
+              @click="saveEdit(evaluation.id)"
+              variant="success"
+              size="sm"
               >Save</AppButton
             >
-            <AppButton v-if="editId === evaluation.id" @click="cancelEdit">Cancel</AppButton>
-            <AppButton
-              class="bg-red-600 hover:bg-red-500"
-              @click="deleteEvaluationHandler(evaluation.id)"
+            <AppButton v-if="editId === evaluation.id" @click="cancelEdit" variant="ghost" size="sm"
+              >Cancel</AppButton
+            >
+            <AppButton variant="danger" size="sm" @click="deleteEvaluationHandler(evaluation.id)"
               >Delete</AppButton
             >
           </div>
@@ -64,22 +79,48 @@
       </tr>
     </AppTable>
     <!-- Create Modal -->
-    <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div class="bg-white p-6 rounded shadow w-md">
-        <h3 class="font-semibold mb-2">Add Evaluation</h3>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-        <AppSelect v-model="newStudentId" @change="onStudentChange">
+    <div
+      v-if="showCreate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Add Evaluation</h3>
+          <button
+            @click="showCreate = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <AppSelect
+          v-model="newStudentId"
+          @change="onStudentChange"
+          label="Select Student"
+          required
+          class="mb-3"
+        >
           <option :value="null">-- Select Student --</option>
           <option v-for="user in users" :key="user.id" :value="user.id">
             {{ user.name }} ({{ user.email }})
           </option>
         </AppSelect>
-        <label class="block text-sm font-medium text-gray-700 mb-1 mt-2">Select Subject</label>
         <AppSelect
           v-model="newSubjectId"
-          class="mt-1"
           :disabled="!newStudentId"
           @change="onSubjectChange"
+          label="Select Subject"
+          required
+          class="mb-3"
         >
           <option
             v-for="subject in filteredSubjectsForStudent"
@@ -89,8 +130,13 @@
             {{ subject.name }}
           </option>
         </AppSelect>
-        <label class="block text-sm font-medium text-gray-700 mb-1 mt-2">Select Question</label>
-        <AppSelect v-model="newQuestionId" class="mt-1" :disabled="!newSubjectId">
+        <AppSelect
+          v-model="newQuestionId"
+          :disabled="!newSubjectId"
+          label="Select Question"
+          required
+          class="mb-3"
+        >
           <option
             v-for="question in filteredQuestionsForSubject"
             :key="question.id"
@@ -99,17 +145,19 @@
             {{ question.text }}
           </option>
         </AppSelect>
-        <label class="block text-sm font-medium text-gray-700 mb-1 mt-2">Select Marking</label>
-        <AppSelect v-model="newMarking" class="mt-1">
+        <AppSelect v-model="newMarking" label="Select Marking" required class="mb-3">
           <option value="done">done</option>
           <option value="partial">partial</option>
           <option value="not_done">not_done</option>
         </AppSelect>
-        <label class="block text-sm font-medium text-gray-700 mb-1 mt-2">Remarks (Optional)</label>
-        <AppInput v-model="newRemarks" placeholder="Remarks (optional)" class="mt-1" />
-        <div class="flex gap-2 mt-4">
-          <AppButton @click="createEvaluationHandler">Create</AppButton>
-          <AppButton @click="showCreate = false">Cancel</AppButton>
+        <AppInput
+          v-model="newRemarks"
+          placeholder="Remarks (optional)"
+          label="Remarks (Optional)"
+        />
+        <div class="flex gap-2 mt-6 justify-end">
+          <AppButton @click="showCreate = false" variant="ghost">Cancel</AppButton>
+          <AppButton @click="createEvaluationHandler">Create Evaluation</AppButton>
         </div>
       </div>
     </div>

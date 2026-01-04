@@ -4,25 +4,29 @@
 -->
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Users</h2>
-      <div class="flex gap-3 items-center">
-        <div class="flex items-center gap-2">
-          <label for="roleFilter" class="text-sm font-medium">Role</label>
-          <AppSelect id="roleFilter" v-model="roleFilter" class="w-40">
-            <option value="">All</option>
-            <option value="student">Student</option>
-            <option value="ta">TA</option>
-            <option value="admin">Admin</option>
-          </AppSelect>
-        </div>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-zinc-900">Users</h2>
+        <p class="text-sm text-zinc-600 mt-1">Manage users and bulk upload via CSV</p>
+      </div>
+      <div class="flex gap-2">
         <AppButton @click="showCreate = true">Add User</AppButton>
-        <AppButton @click="showBulkUpload = true" class="bg-blue-600 hover:bg-blue-500"
-          >Bulk Upload CSV</AppButton
-        >
+        <AppButton @click="showBulkUpload = true" variant="secondary">Bulk Upload CSV</AppButton>
       </div>
     </div>
-    <AppTable>
+    <!-- Role Filter -->
+    <div class="mb-4">
+      <AppSelect id="roleFilter" v-model="roleFilter" label="Filter by Role" class="max-w-xs">
+        <option value="">All</option>
+        <option value="student">Student</option>
+        <option value="ta">TA</option>
+        <option value="admin">Admin</option>
+      </AppSelect>
+    </div>
+    <AppTable
+      :isEmpty="filteredUsers.length === 0"
+      emptyMessage="No users found. Add your first user or adjust your filters."
+    >
       <template #head>
         <th>ID</th>
         <th>Name</th>
@@ -50,10 +54,24 @@
         </td>
         <td>
           <div class="flex gap-2">
-            <AppButton v-if="editId !== user.id" @click="startEdit(user)">Edit</AppButton>
-            <AppButton v-if="editId === user.id" @click="saveEdit(user.id)">Save</AppButton>
-            <AppButton v-if="editId === user.id" @click="cancelEdit">Cancel</AppButton>
-            <AppButton class="bg-red-600 hover:bg-red-500" @click="deleteUserHandler(user.id)"
+            <AppButton
+              v-if="editId !== user.id"
+              @click="startEdit(user)"
+              variant="secondary"
+              size="sm"
+              >Edit</AppButton
+            >
+            <AppButton
+              v-if="editId === user.id"
+              @click="saveEdit(user.id)"
+              variant="success"
+              size="sm"
+              >Save</AppButton
+            >
+            <AppButton v-if="editId === user.id" @click="cancelEdit" variant="ghost" size="sm"
+              >Cancel</AppButton
+            >
+            <AppButton variant="danger" size="sm" @click="deleteUserHandler(user.id)"
               >Delete</AppButton
             >
           </div>
@@ -61,19 +79,39 @@
       </tr>
     </AppTable>
     <!-- Create Modal -->
-    <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div class="bg-white p-6 rounded shadow w-96">
-        <h3 class="font-semibold mb-2">Add User</h3>
-        <AppInput v-model="newName" placeholder="Name" />
-        <AppInput v-model="newEmail" placeholder="Email" class="mt-2" />
-        <AppSelect v-model="newRole" class="mt-2">
+    <div
+      v-if="showCreate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Add User</h3>
+          <button
+            @click="showCreate = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <AppInput v-model="newName" placeholder="Name" label="Name" required class="mb-3" />
+        <AppInput v-model="newEmail" placeholder="Email" label="Email" required class="mb-3" />
+        <AppSelect v-model="newRole" label="Role" required>
           <option value="student">student</option>
           <option value="ta">ta</option>
           <option value="admin">admin</option>
         </AppSelect>
-        <div class="flex gap-2 mt-4">
-          <AppButton @click="createUserHandler">Create</AppButton>
-          <AppButton @click="showCreate = false">Cancel</AppButton>
+        <div class="flex gap-2 mt-6 justify-end">
+          <AppButton @click="showCreate = false" variant="ghost">Cancel</AppButton>
+          <AppButton @click="createUserHandler">Create User</AppButton>
         </div>
       </div>
     </div>
@@ -81,10 +119,27 @@
     <!-- Bulk Upload Modal -->
     <div
       v-if="showBulkUpload"
-      class="fixed inset-0 bg-black/30 flex items-center justify-center z-10"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
-      <div class="bg-white p-6 rounded shadow w-[700px] max-h-[80vh] overflow-auto">
-        <h3 class="font-semibold mb-4">Bulk Upload Users</h3>
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] overflow-auto animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Bulk Upload Users</h3>
+          <button
+            @click="showBulkUpload = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
           <p class="font-semibold mb-1">CSV Format:</p>
@@ -197,7 +252,10 @@
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 justify-end">
+          <AppButton @click="closeBulkUpload" :disabled="isUploading" variant="ghost">
+            {{ isUploading ? 'Uploading...' : 'Close' }}
+          </AppButton>
           <AppButton
             v-if="
               csvData.length > 0 &&
@@ -210,9 +268,6 @@
             :disabled="isUploading"
           >
             Upload {{ csvData.length }} Users
-          </AppButton>
-          <AppButton @click="closeBulkUpload" :disabled="isUploading">
-            {{ isUploading ? 'Uploading...' : 'Close' }}
           </AppButton>
         </div>
       </div>

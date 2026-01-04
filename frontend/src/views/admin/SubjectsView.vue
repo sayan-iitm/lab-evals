@@ -3,170 +3,256 @@
   Admin can view, create, edit, and delete subjects.
 -->
 <template>
-  <div class="flex justify-end mb-4 gap-2">
-    <AppButton @click="showCreate = true">Add Subject</AppButton>
-    <AppButton @click="showBulkUpload = true" class="bg-blue-600 hover:bg-blue-500"
-      >Bulk Upload CSV</AppButton
-    >
-  </div>
-  <h2 class="text-xl font-semibold mb-4">Subjects</h2>
-  <AppTable>
-    <template #head>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Description</th>
-      <th>Actions</th>
-    </template>
-    <tr v-for="subject in subjects" :key="subject.id">
-      <td>{{ subject.id }}</td>
-      <td v-if="editId !== subject.id">{{ subject.name }}</td>
-      <td v-else>
-        <AppInput v-model="editName" />
-      </td>
-      <td v-if="editId !== subject.id">{{ subject.description || '-' }}</td>
-      <td v-else>
-        <AppInput v-model="editDescription" />
-      </td>
-      <td>
-        <div class="flex gap-2">
-          <AppButton v-if="editId !== subject.id" @click="startEdit(subject)">Edit</AppButton>
-          <AppButton v-if="editId === subject.id" @click="saveEdit(subject.id)">Save</AppButton>
-          <AppButton v-if="editId === subject.id" @click="cancelEdit">Cancel</AppButton>
-          <AppButton class="bg-red-600 hover:bg-red-500" @click="deleteSubjectHandler(subject.id)"
-            >Delete</AppButton
-          >
-        </div>
-      </td>
-    </tr>
-  </AppTable>
-  <!-- Create Modal -->
-  <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-    <div class="bg-white p-6 rounded shadow w-80">
-      <h3 class="font-semibold mb-2">Add Subject</h3>
-      <AppInput v-model="newName" placeholder="Subject name" class="mb-2" />
-      <AppInput v-model="newDescription" placeholder="Description (optional)" />
-      <div class="flex gap-2 mt-4">
-        <AppButton @click="createSubjectHandler">Create</AppButton>
-        <AppButton @click="showCreate = false">Cancel</AppButton>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-zinc-900">Subjects</h2>
+        <p class="text-sm text-zinc-600 mt-1">Manage subjects and bulk upload via CSV</p>
+      </div>
+      <div class="flex gap-2">
+        <AppButton @click="showCreate = true">Add Subject</AppButton>
+        <AppButton @click="showBulkUpload = true" variant="secondary">Bulk Upload CSV</AppButton>
       </div>
     </div>
-  </div>
 
-  <!-- Bulk Upload Modal -->
-  <div
-    v-if="showBulkUpload"
-    class="fixed inset-0 bg-black/30 flex items-center justify-center z-10"
-  >
-    <div class="bg-white p-6 rounded shadow w-[600px] max-h-[80vh] overflow-auto">
-      <h3 class="font-semibold mb-4">Bulk Upload Subjects</h3>
+    <AppTable
+      :isEmpty="subjects.length === 0"
+      emptyMessage="No subjects created yet. Add your first subject to get started."
+    >
+      <template #head>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Actions</th>
+      </template>
+      <tr v-for="subject in subjects" :key="subject.id">
+        <td class="font-mono text-xs text-zinc-500">{{ subject.id }}</td>
+        <td v-if="editId !== subject.id" class="font-medium">{{ subject.name }}</td>
+        <td v-else>
+          <AppInput v-model="editName" />
+        </td>
+        <td v-if="editId !== subject.id" class="text-zinc-600">{{ subject.description || '-' }}</td>
+        <td v-else>
+          <AppInput v-model="editDescription" />
+        </td>
+        <td>
+          <div class="flex gap-2">
+            <AppButton
+              v-if="editId !== subject.id"
+              @click="startEdit(subject)"
+              variant="secondary"
+              size="sm"
+              >Edit</AppButton
+            >
+            <AppButton
+              v-if="editId === subject.id"
+              @click="saveEdit(subject.id)"
+              variant="success"
+              size="sm"
+              >Save</AppButton
+            >
+            <AppButton v-if="editId === subject.id" @click="cancelEdit" variant="ghost" size="sm"
+              >Cancel</AppButton
+            >
+            <AppButton variant="danger" size="sm" @click="deleteSubjectHandler(subject.id)"
+              >Delete</AppButton
+            >
+          </div>
+        </td>
+      </tr>
+    </AppTable>
 
-      <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-        <p class="font-semibold mb-1">CSV Format:</p>
-        <p>Your CSV file should have the following columns:</p>
-        <ul class="list-disc list-inside mt-1">
-          <li><strong>name</strong> (required): Subject name</li>
-          <li><strong>description</strong> (optional): Subject description</li>
-        </ul>
-        <p class="mt-2">Example:</p>
-        <code class="block mt-1 p-2 bg-white rounded">
-          name,description<br />
-          Mathematics,Introduction to Algebra<br />
-          Physics,Classical Mechanics
-        </code>
-      </div>
-
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".csv"
-        @change="handleFileSelect"
-        class="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-      />
-
-      <!-- Validation Errors -->
+    <!-- Create Modal -->
+    <div
+      v-if="showCreate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
       <div
-        v-if="validationErrors.length > 0"
-        class="mb-4 p-3 bg-red-50 border border-red-200 rounded"
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in duration-200"
       >
-        <p class="font-semibold text-red-800 mb-2">Validation Errors:</p>
-        <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto">
-          <li v-for="(error, idx) in validationErrors" :key="idx">{{ error }}</li>
-        </ul>
-      </div>
-
-      <!-- Preview Table -->
-      <div v-if="csvData.length > 0 && validationErrors.length === 0" class="mb-4">
-        <p class="font-semibold mb-2">Preview ({{ csvData.length }} subjects):</p>
-        <div class="border rounded max-h-60 overflow-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 sticky top-0">
-              <tr>
-                <th class="px-3 py-2 text-left">Name</th>
-                <th class="px-3 py-2 text-left">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, idx) in csvData" :key="idx" class="border-t">
-                <td class="px-3 py-2">{{ row.name }}</td>
-                <td class="px-3 py-2">{{ row.description || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Add Subject</h3>
+          <button
+            @click="showCreate = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <AppInput
+          v-model="newName"
+          placeholder="Subject name"
+          label="Subject Name"
+          required
+          class="mb-3"
+        />
+        <AppInput
+          v-model="newDescription"
+          placeholder="Description (optional)"
+          label="Description"
+        />
+        <div class="flex gap-2 mt-6 justify-end">
+          <AppButton @click="showCreate = false" variant="ghost">Cancel</AppButton>
+          <AppButton @click="createSubjectHandler">Create Subject</AppButton>
         </div>
       </div>
+    </div>
 
-      <!-- Progress Bar -->
-      <div v-if="isUploading" class="mb-4">
-        <div class="flex justify-between text-sm mb-1">
-          <span>Uploading...</span>
-          <span>{{ uploadProgress.current }} / {{ uploadProgress.total }}</span>
+    <!-- Bulk Upload Modal -->
+    <div
+      v-if="showBulkUpload"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Bulk Upload Subjects</h3>
+          <button
+            @click="closeBulkUpload"
+            :disabled="isUploading"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-          <div
-            class="bg-blue-600 h-full transition-all duration-300"
-            :style="{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }"
-          ></div>
-        </div>
-      </div>
 
-      <!-- Upload Results -->
-      <div v-if="uploadResults.success.length > 0 || uploadResults.errors.length > 0" class="mb-4">
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+          <p class="font-semibold mb-2 text-blue-900">CSV Format:</p>
+          <p class="text-blue-800 mb-2">Your CSV file should have the following columns:</p>
+          <ul class="list-disc list-inside mt-1 text-blue-800 space-y-1">
+            <li><strong>name</strong> (required): Subject name</li>
+            <li><strong>description</strong> (optional): Subject description</li>
+          </ul>
+          <p class="mt-3 mb-1 font-medium text-blue-900">Example:</p>
+          <code class="block mt-1 p-3 bg-white rounded border border-blue-200 text-xs">
+            name,description<br />
+            Mathematics,Introduction to Algebra<br />
+            Physics,Classical Mechanics
+          </code>
+        </div>
+
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".csv"
+          @change="handleFileSelect"
+          class="mb-4 block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
+        />
+
+        <!-- Validation Errors -->
         <div
-          v-if="uploadResults.success.length > 0"
-          class="mb-2 p-3 bg-green-50 border border-green-200 rounded"
+          v-if="validationErrors.length > 0"
+          class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg"
         >
-          <p class="text-green-800 font-semibold">
-            ✓ Successfully uploaded {{ uploadResults.success.length }} subjects
-          </p>
-        </div>
-        <div
-          v-if="uploadResults.errors.length > 0"
-          class="p-3 bg-red-50 border border-red-200 rounded"
-        >
-          <p class="font-semibold text-red-800 mb-2">Failed uploads:</p>
-          <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto">
-            <li v-for="(error, idx) in uploadResults.errors" :key="idx">{{ error }}</li>
+          <p class="font-semibold text-red-800 mb-2">Validation Errors:</p>
+          <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto space-y-1">
+            <li v-for="(error, idx) in validationErrors" :key="idx">{{ error }}</li>
           </ul>
         </div>
-      </div>
 
-      <div class="flex gap-2">
-        <AppButton
-          v-if="
-            csvData.length > 0 &&
-            validationErrors.length === 0 &&
-            !isUploading &&
-            uploadResults.success.length === 0 &&
-            uploadResults.errors.length === 0
-          "
-          @click="startUpload"
-          :disabled="isUploading"
+        <!-- Preview Table -->
+        <div v-if="csvData.length > 0 && validationErrors.length === 0" class="mb-4">
+          <p class="font-semibold mb-2">Preview ({{ csvData.length }} subjects):</p>
+          <div class="border rounded-lg overflow-hidden">
+            <div class="max-h-60 overflow-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-zinc-50 sticky top-0">
+                  <tr>
+                    <th class="px-4 py-2 text-left font-semibold text-zinc-700">Name</th>
+                    <th class="px-4 py-2 text-left font-semibold text-zinc-700">Description</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-200">
+                  <tr v-for="(row, idx) in csvData" :key="idx" class="hover:bg-zinc-50">
+                    <td class="px-4 py-2">{{ row.name }}</td>
+                    <td class="px-4 py-2 text-zinc-600">{{ row.description || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div v-if="isUploading" class="mb-4">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-medium text-zinc-700">Uploading...</span>
+            <span class="text-zinc-600"
+              >{{ uploadProgress.current }} / {{ uploadProgress.total }}</span
+            >
+          </div>
+          <div class="w-full bg-zinc-200 rounded-full h-3 overflow-hidden">
+            <div
+              class="bg-green-600 h-full transition-all duration-300 rounded-full"
+              :style="{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Upload Results -->
+        <div
+          v-if="uploadResults.success.length > 0 || uploadResults.errors.length > 0"
+          class="mb-4"
         >
-          Upload {{ csvData.length }} Subjects
-        </AppButton>
-        <AppButton @click="closeBulkUpload" :disabled="isUploading">
-          {{ isUploading ? 'Uploading...' : 'Close' }}
-        </AppButton>
+          <div
+            v-if="uploadResults.success.length > 0"
+            class="mb-3 p-4 bg-green-50 border border-green-200 rounded-lg"
+          >
+            <p class="text-green-800 font-semibold flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Successfully uploaded {{ uploadResults.success.length }} subjects
+            </p>
+          </div>
+          <div
+            v-if="uploadResults.errors.length > 0"
+            class="p-4 bg-red-50 border border-red-200 rounded-lg"
+          >
+            <p class="font-semibold text-red-800 mb-2">Failed uploads:</p>
+            <ul class="text-sm text-red-700 list-disc list-inside max-h-40 overflow-auto space-y-1">
+              <li v-for="(error, idx) in uploadResults.errors" :key="idx">{{ error }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex gap-2 justify-end">
+          <AppButton
+            v-if="
+              csvData.length > 0 &&
+              validationErrors.length === 0 &&
+              !isUploading &&
+              uploadResults.success.length === 0 &&
+              uploadResults.errors.length === 0
+            "
+            @click="startUpload"
+            :disabled="isUploading"
+            variant="success"
+          >
+            Upload {{ csvData.length }} Subjects
+          </AppButton>
+          <AppButton @click="closeBulkUpload" :disabled="isUploading" variant="ghost">
+            {{ isUploading ? 'Uploading...' : 'Close' }}
+          </AppButton>
+        </div>
       </div>
     </div>
   </div>

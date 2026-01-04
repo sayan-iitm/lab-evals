@@ -29,6 +29,7 @@ const routes = [
     component: () => import('../components/layout/TALayout.vue'),
     meta: { role: 'ta' },
     children: [
+      { path: 'profile', component: () => import('../views/ta/ProfileView.vue') },
       { path: 'students', component: () => import('../views/ta/StudentsView.vue') },
       { path: 'subjects', component: () => import('../views/ta/SubjectsView.vue') },
       { path: 'questions', component: () => import('../views/ta/QuestionsView.vue') },

@@ -4,16 +4,69 @@
 -->
 <template>
   <div class="min-h-screen bg-zinc-50">
-    <header class="bg-zinc-800 text-white px-6 py-4 flex items-center justify-between">
-      <h1 class="text-xl font-semibold">Lab Evaluation TA</h1>
+    <header class="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-4 shadow-md">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Lab Evaluation</h1>
+          <p class="text-sm text-green-100 mt-0.5">Teaching Assistant Portal</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <p class="text-sm font-medium">{{ user?.name }}</p>
+            <p class="text-xs text-green-100">{{ user?.email }}</p>
+          </div>
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 bg-green-700 hover:bg-green-800 rounded-md text-sm font-medium transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
     </header>
-    <nav class="bg-zinc-100 px-6 py-2 flex gap-4">
-      <RouterLink to="/ta/evaluations" class="font-semibold hover:underline"
-        >Evaluations</RouterLink
-      >
-      <RouterLink to="/ta/students" class="hover:underline">Students</RouterLink>
-      <RouterLink to="/ta/subjects" class="hover:underline">Subjects</RouterLink>
-      <RouterLink to="/ta/questions" class="hover:underline">Questions</RouterLink>
+    <nav class="bg-white border-b border-zinc-200 px-6 py-3 shadow-sm">
+      <div class="max-w-7xl mx-auto flex gap-1">
+        <RouterLink
+          to="/ta/evaluations"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          active-class="bg-green-600 text-white"
+          :class="$route.path === '/ta/evaluations' ? '' : 'text-zinc-700 hover:bg-zinc-100'"
+        >
+          Evaluations
+        </RouterLink>
+        <RouterLink
+          to="/ta/students"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          active-class="bg-green-600 text-white"
+          :class="$route.path === '/ta/students' ? '' : 'text-zinc-700 hover:bg-zinc-100'"
+        >
+          Students
+        </RouterLink>
+        <RouterLink
+          to="/ta/subjects"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          active-class="bg-green-600 text-white"
+          :class="$route.path === '/ta/subjects' ? '' : 'text-zinc-700 hover:bg-zinc-100'"
+        >
+          Subjects
+        </RouterLink>
+        <RouterLink
+          to="/ta/questions"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          active-class="bg-green-600 text-white"
+          :class="$route.path === '/ta/questions' ? '' : 'text-zinc-700 hover:bg-zinc-100'"
+        >
+          Questions
+        </RouterLink>
+        <RouterLink
+          to="/ta/profile"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          active-class="bg-green-600 text-white"
+          :class="$route.path === '/ta/profile' ? '' : 'text-zinc-700 hover:bg-zinc-100'"
+        >
+          Profile
+        </RouterLink>
+      </div>
     </nav>
     <main class="p-6 max-w-7xl mx-auto">
       <RouterView />
@@ -22,5 +75,17 @@
 </template>
 
 <script setup lang="ts">
-// No props; layout is slot-driven
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../store/auth'
+
+const auth = useAuthStore()
+const router = useRouter()
+
+const user = computed(() => auth.user)
+
+function handleLogout() {
+  auth.clearAuth()
+  router.push('/login')
+}
 </script>

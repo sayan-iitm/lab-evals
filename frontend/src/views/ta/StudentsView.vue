@@ -5,7 +5,7 @@
 <template>
   <div>
     <h2 class="text-xl font-semibold mb-4">Students</h2>
-    <AppTable>
+    <AppTable :isEmpty="students.length === 0" emptyMessage="No students found in the system.">
       <template #head>
         <th>ID</th>
         <th>Name</th>

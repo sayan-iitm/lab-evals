@@ -4,24 +4,29 @@
 -->
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Enrollments</h2>
-      <div class="flex gap-2 items-center">
-        <AppSelect v-model="filterSubjectId" class="w-64">
-          <option value="">All Subjects</option>
-          <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
-            {{ subject.name }}
-          </option>
-        </AppSelect>
-        <AppButton @click="showCreate = true" class="whitespace-nowrap">Add Enrollment</AppButton>
-        <AppButton
-          @click="showBulkUpload = true"
-          class="bg-blue-600 hover:bg-blue-500 whitespace-nowrap"
-          >Bulk Upload CSV</AppButton
-        >
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-zinc-900">Enrollments</h2>
+        <p class="text-sm text-zinc-600 mt-1">Manage student enrollments and bulk upload via CSV</p>
+      </div>
+      <div class="flex gap-2">
+        <AppButton @click="showCreate = true">Add Enrollment</AppButton>
+        <AppButton @click="showBulkUpload = true" variant="secondary">Bulk Upload CSV</AppButton>
       </div>
     </div>
-    <AppTable>
+    <!-- Subject Filter -->
+    <div class="mb-4">
+      <AppSelect v-model="filterSubjectId" label="Filter by Subject" class="max-w-md">
+        <option value="">All Subjects</option>
+        <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+          {{ subject.name }}
+        </option>
+      </AppSelect>
+    </div>
+    <AppTable
+      :isEmpty="filteredEnrollments.length === 0"
+      emptyMessage="No enrollments found. Add your first enrollment or adjust your filters."
+    >
       <template #head>
         <th>ID</th>
         <th>User Email</th>
@@ -35,21 +40,38 @@
         <td>{{ getUser(enrollment.user_id)?.name }}</td>
         <td>{{ getSubjectName(enrollment.subject_id) }}</td>
         <td>
-          <AppButton
-            class="bg-red-600 hover:bg-red-500"
-            @click="deleteEnrollmentHandler(enrollment.id)"
+          <AppButton variant="danger" size="sm" @click="deleteEnrollmentHandler(enrollment.id)"
             >Delete</AppButton
           >
         </td>
       </tr>
     </AppTable>
     <!-- Create Modal -->
-    <div v-if="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div class="bg-white p-6 rounded shadow w-96">
-        <h3 class="font-semibold mb-4">Add Enrollment</h3>
+    <div
+      v-if="showCreate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Add Enrollment</h3>
+          <button
+            @click="showCreate = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Student</label>
-          <AppSelect v-model="newUserId">
+          <AppSelect v-model="newUserId" label="Student" required>
             <option :value="null" disabled>Select a student</option>
             <option v-for="user in students" :key="user.id" :value="user.id">
               {{ user.name }} ({{ user.email }})
@@ -57,16 +79,15 @@
           </AppSelect>
         </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Subject</label>
-          <AppSelect v-model="newSubjectId" :disabled="!newUserId">
+          <AppSelect v-model="newSubjectId" :disabled="!newUserId" label="Subject" required>
             <option v-for="subject in availableSubjects" :key="subject.id" :value="subject.id">
               {{ subject.name }}
             </option>
           </AppSelect>
         </div>
-        <div class="flex gap-2">
-          <AppButton @click="createEnrollmentHandler">Create</AppButton>
-          <AppButton @click="showCreate = false">Cancel</AppButton>
+        <div class="flex gap-2 justify-end">
+          <AppButton @click="showCreate = false" variant="ghost">Cancel</AppButton>
+          <AppButton @click="createEnrollmentHandler">Create Enrollment</AppButton>
         </div>
       </div>
     </div>
@@ -74,10 +95,27 @@
     <!-- Bulk Upload Modal -->
     <div
       v-if="showBulkUpload"
-      class="fixed inset-0 bg-black/30 flex items-center justify-center z-10"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
-      <div class="bg-white p-6 rounded shadow w-[700px] max-h-[80vh] overflow-auto">
-        <h3 class="font-semibold mb-4">Bulk Upload Enrollments</h3>
+      <div
+        class="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] overflow-auto animate-in fade-in zoom-in duration-200"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-zinc-900">Bulk Upload Enrollments</h3>
+          <button
+            @click="showBulkUpload = false"
+            class="text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <!-- Subject Selection -->
         <div class="mb-4">
@@ -198,7 +236,10 @@
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 justify-end">
+          <AppButton @click="closeBulkUpload" :disabled="isUploading" variant="ghost">
+            {{ isUploading ? 'Uploading...' : 'Close' }}
+          </AppButton>
           <AppButton
             v-if="
               csvData.length > 0 &&
@@ -211,9 +252,6 @@
             :disabled="isUploading"
           >
             Upload {{ csvData.length }} Enrollments
-          </AppButton>
-          <AppButton @click="closeBulkUpload" :disabled="isUploading">
-            {{ isUploading ? 'Uploading...' : 'Close' }}
           </AppButton>
         </div>
       </div>

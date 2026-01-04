@@ -5,7 +5,7 @@
 <template>
   <div>
     <h2 class="text-xl font-semibold mb-4">Subjects</h2>
-    <AppTable>
+    <AppTable :isEmpty="subjects.length === 0" emptyMessage="No subjects available yet.">
       <template #head>
         <th>ID</th>
         <th>Name</th>

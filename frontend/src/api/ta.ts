@@ -10,6 +10,9 @@ import type {
   TAEvaluationUpdate,
 } from '../types/api'
 
+// Get own user info
+export const getMe = async (): Promise<UserResponse> => (await api.get('/user/me')).data
+
 // List students (students only, exclude admins/TAs)
 export const getStudents = async (): Promise<UserResponse[]> => (await api.get('/ta/students')).data
 
