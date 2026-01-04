@@ -302,6 +302,19 @@ def create_enrollment(enrollment: EnrollmentCreate):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Subject does not exist",
             )
+        exists = (
+            db.query(Enrollment)
+            .filter_by(
+                user_id=enrollment.user_id,
+                subject_id=enrollment.subject_id,
+            )
+            .first()
+        )
+        if exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Enrollment already exists",
+            )
         db_obj = Enrollment(
             user_id=enrollment.user_id, subject_id=enrollment.subject_id
         )

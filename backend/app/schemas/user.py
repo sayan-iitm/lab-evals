@@ -2,6 +2,8 @@
 Pydantic schemas for User model.
 """
 
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 
 from app.constants.enums import UserRole
@@ -37,7 +39,7 @@ class UserPartialUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True

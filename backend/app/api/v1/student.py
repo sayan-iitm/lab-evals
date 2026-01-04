@@ -17,17 +17,8 @@ from app.schemas.enrollment import EnrollmentResponse
 from app.schemas.evaluation import StudentEvaluationResponse
 from app.schemas.question import QuestionResponse
 from app.schemas.subject import SubjectResponse
-from app.schemas.user import UserResponse
 
 router = APIRouter(dependencies=[Depends(require_role(UserRole.student))])
-
-# --- Get own user info ---
-
-
-@router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
 
 # --- Get own enrollments ---
 

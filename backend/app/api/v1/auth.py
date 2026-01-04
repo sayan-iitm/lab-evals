@@ -2,7 +2,7 @@
 Authentication endpoints for Google OAuth and JWT issuance.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import (
@@ -26,6 +26,12 @@ class TokenResponse(BaseModel):
 @router.post("/login", response_model=TokenResponse)
 def login(request: TokenRequest):
     claims = verify_google_id_token(request.id_token)
-    user = get_or_create_user_from_google(claims)
+    try:
+        user = get_or_create_user_from_google(claims)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=401,
+            detail=str(e),
+        )
     jwt = issue_jwt_for_user(user)
     return TokenResponse(access_token=jwt)
