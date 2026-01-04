@@ -33,7 +33,12 @@ router = APIRouter(dependencies=[Depends(require_role(UserRole.ta))])
 def list_students():
     db = SessionLocal()
     try:
-        return db.query(User).filter(User.role == UserRole.student).all()
+        return (
+            db.query(User)
+            .filter(User.role == UserRole.student)
+            .order_by(User.email)
+            .all()
+        )
     finally:
         db.close()
 
