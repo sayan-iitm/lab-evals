@@ -7,7 +7,7 @@ run:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 up:
-	docker compose up
+	docker compose up --build
 
 # Lint and format
 format:
