@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "lab-evals-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Backend for Lab Evaluations"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -15,6 +15,9 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "uvicorn>=0.40.0",
 ]
+
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [

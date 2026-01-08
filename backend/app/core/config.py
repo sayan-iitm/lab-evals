@@ -22,6 +22,8 @@ class Settings:
         "GOOGLE_CLIENT_ID", "your-google-client-id"
     )
     ENV: str = os.getenv("ENV", "development")
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "sayan@study.iitm.ac.in")
+    ADMIN_NAME: str = os.getenv("ADMIN_NAME", "Sayan")
 
 
 @lru_cache
