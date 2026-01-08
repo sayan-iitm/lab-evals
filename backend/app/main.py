@@ -6,6 +6,7 @@ Initializes FastAPI app, includes API routers, and configures middleware.
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import admin, auth, student, ta, user
 from app.constants.enums import UserRole
@@ -41,6 +42,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Lab Evaluation Application", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # API Routers
