@@ -2,8 +2,10 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/auth'
 
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE + '/api/v1',
 })
 
 // Request interceptor to inject JWT
@@ -20,7 +22,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       window.location.href = '/login'
     }
     return Promise.reject(error)

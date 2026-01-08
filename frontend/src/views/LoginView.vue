@@ -128,7 +128,9 @@ const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
  * With <script setup>, we must explicitly attach it to window.
  */
 onMounted(() => {
-  ;(window as any).onGoogleSignIn = async (response: any) => {
+  ;(
+    window as Window & { onGoogleSignIn?: (response: { credential?: string }) => void }
+  ).onGoogleSignIn = async (response: { credential?: string }) => {
     const idToken = response?.credential
     if (!idToken) {
       error.value = 'No ID token received'
@@ -152,9 +154,9 @@ onMounted(() => {
       } else {
         router.replace('/student/questions')
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.log(e)
-      error.value = e?.message || 'Login failed. Please try again.'
+      error.value = e instanceof Error ? e.message : 'Login failed. Please try again.'
       auth.clearAuth()
     } finally {
       loading.value = false

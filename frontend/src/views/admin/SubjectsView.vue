@@ -405,14 +405,21 @@ async function startUpload() {
   uploadProgress.value = { current: 0, total: csvData.value.length }
   uploadResults.value = { success: [], errors: [] }
 
-  for (let i = 0; i < csvData.value.length; i++) {
-    const subject = csvData.value[i]
+  for (const element of csvData.value) {
+    const subject = element
     try {
       await createSubject(subject)
       uploadResults.value.success.push(`"${subject.name}" uploaded successfully`)
       uploadProgress.value.current++
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error'
+    } catch (error) {
+      let errorMessage = 'Unknown error'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as { response?: { data?: { detail?: string; message?: string } } })
+          .response
+        errorMessage = response?.data?.detail || response?.data?.message || 'Unknown error'
+      }
       uploadResults.value.errors.push(`"${subject.name}": ${errorMessage}`)
       uploadProgress.value.current++
     }

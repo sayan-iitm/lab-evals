@@ -310,8 +310,8 @@ const students = computed(() => {
 const availableSubjects = computed(() => {
   if (!newUserId.value) return []
   const studentEnrollments = enrollments.value.filter((e) => e.user_id === newUserId.value)
-  const enrolledSubjectIds = studentEnrollments.map((e) => e.subject_id)
-  return subjects.value.filter((s) => !enrolledSubjectIds.includes(s.id))
+  const enrolledSubjectIds = new Set(studentEnrollments.map((e) => e.subject_id))
+  return subjects.value.filter((s) => !enrolledSubjectIds.has(s.id))
 })
 
 async function load() {
@@ -352,12 +352,10 @@ async function deleteEnrollmentHandler(id: number) {
     ) {
       return
     }
-  } else {
-    if (
-      !confirm('Are you sure you want to delete this enrollment? This action cannot be undone.')
-    ) {
-      return
-    }
+  } else if (
+    !confirm('Are you sure you want to delete this enrollment? This action cannot be undone.')
+  ) {
+    return
   }
   await deleteEnrollment(id)
   await load()
@@ -475,8 +473,8 @@ async function startUpload() {
   uploadProgress.value = { current: 0, total: csvData.value.length }
   uploadResults.value = { success: [], errors: [] }
 
-  for (let i = 0; i < csvData.value.length; i++) {
-    const enrollment = csvData.value[i]
+  for (const element of csvData.value) {
+    const enrollment = element
     const user = getUser(enrollment.user_id)
     const subjectName = getSubjectName(enrollment.subject_id)
 
@@ -484,8 +482,14 @@ async function startUpload() {
       await createEnrollment(enrollment)
       uploadResults.value.success.push(`${user?.name} enrolled in ${subjectName}`)
       uploadProgress.value.current++
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error'
+    } catch (error: unknown) {
+      let errorMessage = 'Unknown error'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null && 'response' in error) {
+        const apiError = error as { response?: { data?: { detail?: string } } }
+        errorMessage = apiError.response?.data?.detail || 'Unknown error'
+      }
       uploadResults.value.errors.push(`${user?.name} in ${subjectName}: ${errorMessage}`)
       uploadProgress.value.current++
     }

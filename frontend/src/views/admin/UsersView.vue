@@ -474,14 +474,29 @@ async function startUpload() {
   uploadProgress.value = { current: 0, total: csvData.value.length }
   uploadResults.value = { success: [], errors: [] }
 
-  for (let i = 0; i < csvData.value.length; i++) {
-    const user = csvData.value[i]
+  for (const element of csvData.value) {
+    const user = element
     try {
       await createUser(user)
       uploadResults.value.success.push(`"${user.name}" (${user.email}) uploaded successfully`)
       uploadProgress.value.current++
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error'
+    } catch (error: unknown) {
+      let errorMessage = 'Unknown error'
+      if (error && typeof error === 'object') {
+        if (
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'data' in error.response
+        ) {
+          const data = error.response.data
+          if (data && typeof data === 'object' && 'detail' in data) {
+            errorMessage = String(data.detail)
+          }
+        } else if ('message' in error) {
+          errorMessage = String(error.message)
+        }
+      }
       uploadResults.value.errors.push(`"${user.name}" (${user.email}): ${errorMessage}`)
       uploadProgress.value.current++
     }
