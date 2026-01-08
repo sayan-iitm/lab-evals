@@ -24,6 +24,9 @@ class Settings:
     ENV: str = os.getenv("ENV", "development")
     ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "sayan@study.iitm.ac.in")
     ADMIN_NAME: str = os.getenv("ADMIN_NAME", "Sayan")
+    FRONTEND_ORIGIN: str = os.getenv(
+        "FRONTEND_ORIGIN", "http://localhost:5173"
+    )
 
 
 @lru_cache

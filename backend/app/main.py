@@ -44,9 +44,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Lab Evaluation Application", lifespan=lifespan)
 
+allowed_origins = []
+
+if settings.ENV == "development":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [settings.FRONTEND_ORIGIN]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,3 +72,8 @@ def include_routers(app: FastAPI):
 
 
 include_routers(app)
+
+
+@app.get("/healthz", tags=["health"])
+async def health_check():
+    return {"status": "ok"}

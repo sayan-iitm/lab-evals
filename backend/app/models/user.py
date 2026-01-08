@@ -3,7 +3,7 @@ User model for authentication and RBAC.
 No passwords stored; Google OAuth only.
 """
 
-from sqlalchemy import DateTime, Enum, Index, Integer, String, func
+from sqlalchemy import DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.constants.enums import UserRole
@@ -27,9 +27,4 @@ class User(Base):
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-
-    __table_args__ = (
-        Index("ix_users_email", "email"),
-        Index("ix_users_google_sub", "google_sub"),
     )
